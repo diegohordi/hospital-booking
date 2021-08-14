@@ -76,6 +76,7 @@ func (c *defaultConfig) loadPrivateKey(configPath string) error {
 	return nil
 }
 
+// Load loads the given configuration file.
 func Load(configPath string) (Config, error) {
 	data := &configData{}
 	configFile, err := os.Open(configPath)
@@ -94,3 +95,13 @@ func Load(configPath string) (Config, error) {
 	}
 	return configuration, nil
 }
+
+// MustLoad loads the given configuration file and if any error occurs, will panic.
+func MustLoad(configPath string) Config {
+	config, err := Load(configPath)
+	if err != nil {
+		panic(err)
+	}
+	return config
+}
+

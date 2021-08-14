@@ -50,30 +50,6 @@ func NewService(config configs.Config, dbConn database.Connection) Service {
 	}
 }
 
-// generateTokens generates Tokens for the given user.
-func (d defaultService) generateTokens(ctx context.Context, user User) (*Tokens, error) {
-	accessToken, err := NewJwtToken(GetDefaultAccessTokenOptions(WithSubject(user.UUID.String()), WithRole(user.Role))...)
-	if err != nil {
-		return nil, err
-	}
-	signedAccessToken, err := SignToken(accessToken, d.config.PrivateKey())
-	if err != nil {
-		return nil, err
-	}
-	refreshToken, err := NewJwtToken(GetDefaultRefreshTokenOptions(WithSubject(user.UUID.String()), WithRole(user.Role))...)
-	if err != nil {
-		return nil, err
-	}
-	signedRefreshToken, err := SignToken(refreshToken, d.config.PrivateKey())
-	if err != nil {
-		return nil, err
-	}
-	return &Tokens{
-		AccessToken:  signedAccessToken,
-		RefreshToken: signedRefreshToken,
-	}, nil
-}
-
 func (d defaultService) Authenticate(ctx context.Context, credentials Credentials) (*Tokens, error) {
 	if err := credentials.Validate(); err != nil {
 		return nil, err
@@ -92,7 +68,7 @@ func (d defaultService) Authenticate(ctx context.Context, credentials Credential
 	if !isValidCredentials {
 		return nil, NewUnauthorizedError()
 	}
-	return d.generateTokens(ctx, *user)
+	return GenerateTokens(ctx, d.config.PrivateKey(), *user)
 }
 
 func (d defaultService) ValidateToken(ctx context.Context, token string) (*User, error) {
@@ -132,7 +108,7 @@ func (d defaultService) RefreshTokens(ctx context.Context, tokens Tokens) (*Toke
 	if user == nil {
 		return nil, NewUnauthorizedError()
 	}
-	return d.generateTokens(ctx, *user)
+	return GenerateTokens(ctx, d.config.PrivateKey(), *user)
 }
 
 func (d defaultService) GetAuthenticatedUser(ctx context.Context) (User, error) {
