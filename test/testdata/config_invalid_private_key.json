@@ -1,0 +1,6 @@
+{
+  "port": 8080,
+  "database_driver": "postgres",
+  "database_dsn": "postgresql://admin:admin@localhost:5432/hospital_booking?sslmode=disable",
+  "private_key_file": "./../../test/testdata/invalid.pem"
+}

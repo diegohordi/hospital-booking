@@ -1,0 +1,23 @@
+version: '3'
+networks:
+  hospital_booking:
+volumes:
+  database:
+services:
+  hospital_booking_database:
+    build: './database/'
+    container_name: hospital_booking_database
+    restart: always
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "admin" ]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    environment:
+      APP_PASSWORD: admin
+      APP_USER: hospital_booking
+      APP_DB: hospital_booking
+    ports:
+      - '5432:5432'
+    networks:
+      - hospital_booking
