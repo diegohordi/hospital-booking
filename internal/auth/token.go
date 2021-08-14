@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto"
 	"crypto/rsa"
 	"encoding/hex"
@@ -170,4 +171,38 @@ func ParseToken(token string, publicKey rsa.PublicKey) (jwt.Token, error) {
 		return nil, err
 	}
 	return parsedToken, nil
+}
+
+// GenerateTokens generates Tokens for the given user.
+func GenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, opts... TokenOption) (*Tokens, error) {
+	opts = append(opts, WithSubject(user.UUID.String()), WithRole(user.Role))
+	accessToken, err := NewJwtToken(GetDefaultAccessTokenOptions(opts...)...)
+	if err != nil {
+		return nil, err
+	}
+	signedAccessToken, err := SignToken(accessToken, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := NewJwtToken(GetDefaultRefreshTokenOptions(opts...)...)
+	if err != nil {
+		return nil, err
+	}
+	signedRefreshToken, err := SignToken(refreshToken, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	return &Tokens{
+		AccessToken:  signedAccessToken,
+		RefreshToken: signedRefreshToken,
+	}, nil
+}
+
+// MustGenerateTokens generates Tokens for the given user and if any error occurs, will panic.
+func MustGenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, opts... TokenOption) *Tokens {
+	tokens, err := GenerateTokens(ctx, privateKey, user, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return tokens
 }

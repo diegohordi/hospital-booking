@@ -9,7 +9,7 @@ experiences.
 The system uses PostgreSQL as database and its template is in /deployments/database folder.
 
 First, I decided to use PostgreSQL due to my familiarity, and second, an SQL database due to the project's
-schema rigidity and the ACID characteristics, IMHO required for a booking system. 
+schema rigidity and the ACID characteristics - IMHO required for a booking system. 
 
 I didn't use any migration tool to create and seed the database in order to keep the things as simple
 as possible, without any really needed external dependencies, but in production grade environments 
@@ -22,7 +22,7 @@ we must handle this properly.
 ## Tests
 
 I achieved an average of 80% of code coverage. I didn't implement BDD, but I did the integration tests
-covering all app layers.
+covering all app layers, mocking the database.
 
 ## Security
 
