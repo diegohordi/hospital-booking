@@ -28,7 +28,7 @@ type Doctor struct {
 
 type BlockPeriod struct {
 	ID          int64     `json:"-" dbfield:"id"`
-	UUID        uuid.UUID `json:"uuid" dbfield:"uuid"`
+	UUID        uuid.UUID `json:"uuid,omitempty" dbfield:"uuid"`
 	DoctorID    int64     `json:"-" dbfield:"doctor_id"`
 	Doctor      *Doctor   `json:"doctor,omitempty"`
 	StartDate   time.Time `json:"start_date,omitempty" dbfield:"start_date"`

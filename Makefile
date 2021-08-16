@@ -1,11 +1,13 @@
 format:
 	sh ./scripts/format.sh
+	go mod tidy
 
 vet:
 	go vet ./...
-	shadow ./...
+	sh ./scripts/shadow.sh
 	sh ./scripts/errcheck.sh
 	sh ./scripts/staticcheck.sh
+	go mod tidy
 
 genkey:
 	go run ./cmd/keygen/main.go
@@ -18,3 +20,12 @@ uuidgen:
 
 keygen:
 	go run ./cmd/keygen/main.go -dir ${dir}
+
+run_test:
+	docker-compose up --build --abort-on-container-exit hospital_booking_backend_test
+
+run:
+	docker-compose --profile deploy up --build -d
+
+stop:
+	docker-compose down -v

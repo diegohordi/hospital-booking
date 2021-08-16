@@ -9,12 +9,15 @@ import (
 	"hospital-booking/internal/configs"
 	"hospital-booking/internal/database"
 	"hospital-booking/internal/logging"
+	"hospital-booking/internal/metrics"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -24,9 +27,6 @@ var configPath = flag.String("config", "", "Config file path")
 
 // loadConfigurations loads system configurations based on the given config file.
 func loadConfigurations() configs.Config {
-	if *configPath == "" {
-		log.Fatal("no config file path was given")
-	}
 	config, err := configs.Load(*configPath)
 	if err != nil {
 		log.Fatal(err)
@@ -62,7 +62,11 @@ func main() {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	router.Use(metrics.PrometheusMiddleware)
 	router.Use(middleware.SetHeader("Content-type", "application/json"))
+
+	// Prometheus endpoint
+	router.Handle("/prometheus", promhttp.Handler())
 
 	// Setup Auth routes
 	auth.Setup(router, logger, config, dbConn)

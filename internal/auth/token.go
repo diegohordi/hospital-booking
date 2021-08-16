@@ -20,7 +20,7 @@ const (
 	AudienceDefault            = "hospital_booking"
 	AccessTokenType            = "access"
 	RefreshTokenType           = "refresh"
-	AccessTokenExpiration      = 5 * time.Minute
+	AccessTokenExpiration      = 10 * time.Minute
 	RefreshTokenExpiration     = 24 * time.Hour
 )
 
@@ -174,7 +174,7 @@ func ParseToken(token string, publicKey rsa.PublicKey) (jwt.Token, error) {
 }
 
 // GenerateTokens generates Tokens for the given user.
-func GenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, opts... TokenOption) (*Tokens, error) {
+func GenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, opts ...TokenOption) (*Tokens, error) {
 	opts = append(opts, WithSubject(user.UUID.String()), WithRole(user.Role))
 	accessToken, err := NewJwtToken(GetDefaultAccessTokenOptions(opts...)...)
 	if err != nil {
@@ -199,7 +199,7 @@ func GenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, o
 }
 
 // MustGenerateTokens generates Tokens for the given user and if any error occurs, will panic.
-func MustGenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, opts... TokenOption) *Tokens {
+func MustGenerateTokens(ctx context.Context, privateKey rsa.PrivateKey, user User, opts ...TokenOption) *Tokens {
 	tokens, err := GenerateTokens(ctx, privateKey, user, opts...)
 	if err != nil {
 		panic(err)
