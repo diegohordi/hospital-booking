@@ -10,6 +10,7 @@ import (
 	"hospital-booking/internal/logging"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -55,7 +56,19 @@ func (h httpHandler) parseDateParameters(r *http.Request) (time.Time, error) {
 	if year == "" || month == "" || day == "" {
 		return zeroTime, apierrors.NewAPIError(apierrors.WithDetail(ErrInvalidDateReference), apierrors.WithHTTPStatusCode(http.StatusNotFound))
 	}
-	concatDate := fmt.Sprintf("%s-%s-%s", year, month, day)
+	yearInt, err := strconv.Atoi(year)
+	if len(year) != 4 || err != nil {
+		return zeroTime, apierrors.NewAPIError(apierrors.WithDetail(ErrInvalidYearReference), apierrors.WithHTTPStatusCode(http.StatusBadRequest))
+	}
+	monthInt, err := strconv.Atoi(month)
+	if len(month) > 2 || err != nil {
+		return zeroTime, apierrors.NewAPIError(apierrors.WithDetail(ErrInvalidMonthReference), apierrors.WithHTTPStatusCode(http.StatusBadRequest))
+	}
+	dayInt, err := strconv.Atoi(day)
+	if len(day) > 2 || err != nil {
+		return zeroTime, apierrors.NewAPIError(apierrors.WithDetail(ErrInvalidDayReference), apierrors.WithHTTPStatusCode(http.StatusBadRequest))
+	}
+	concatDate := fmt.Sprintf("%4d-%02d-%02d", yearInt, monthInt, dayInt)
 	date, err := time.Parse("2006-01-02", concatDate)
 	if err != nil {
 		return zeroTime, apierrors.NewAPIError(apierrors.WithDetail(ErrInvalidDateReference), apierrors.WithHTTPStatusCode(http.StatusBadRequest))
