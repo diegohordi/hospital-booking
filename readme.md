@@ -14,6 +14,8 @@ Notice that:
 * `GET/POST {{baseUrl}}/api/v1/calendar/:doctorUUID/:year/:month/:day`, is restricted for the users with PATIENT role, allows 
 patients to get a doctor's calendar or insert a new appointment into it.
 
+Doctor UUID, e.g : 293691a7-9d90-47f9-a502-ff196f9d50e0
+
 
 * GET `{{baseUrl}}/api/v1/calendar/:year/:month/:day`, is restricted for the users with DOCTOR role, allows
   doctors to get his/her own calendar with appointment details (if there are one).
