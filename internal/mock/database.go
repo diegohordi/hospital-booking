@@ -3,12 +3,13 @@ package mock
 
 import (
 	"database/sql"
+
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
 // Connection is the mock version for database.Connection.
 type Connection struct {
-	db   *sql.DB
+	db      *sql.DB
 	SQLMock sqlmock.Sqlmock
 }
 
@@ -26,14 +27,14 @@ func MustCreateConnectionMock() Connection {
 		panic(err)
 	}
 	return Connection{
-		db:   db,
+		db:      db,
 		SQLMock: mock,
 	}
 }
 
 type DBResultOption func(dbConn Connection)
 
-func MockDBResults(dbConn Connection, opts ...DBResultOption){
+func MockDBResults(dbConn Connection, opts ...DBResultOption) {
 	for _, opt := range opts {
 		opt(dbConn)
 	}

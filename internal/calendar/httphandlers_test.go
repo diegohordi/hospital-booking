@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -23,7 +22,13 @@ import (
 	"github.com/google/uuid"
 )
 
-var logger = log.New(os.Stdout, "", log.LstdFlags)
+type emptyWriter struct{}
+
+func (e emptyWriter) Write(p []byte) (n int, err error) {
+	return 0, nil
+}
+
+var logger = log.New(&emptyWriter{}, "", log.LstdFlags)
 
 type mockAuthorizer struct {
 	mockValidateToken        func(ctx context.Context, token string) (*auth.User, error)
@@ -76,18 +81,6 @@ func withFindPatientByIDResult(rows *sqlmock.Rows) mock.DBResultOption {
 func withFindPatientByIDError() mock.DBResultOption {
 	return func(dbConn mock.Connection) {
 		dbConn.SQLMock.ExpectQuery(regexp.QuoteMeta(findPatientByIDQuery)).WithArgs(sqlmock.AnyArg()).WillReturnError(sql.ErrConnDone)
-	}
-}
-
-func withFindPatientByUUIDResult(rows *sqlmock.Rows) mock.DBResultOption {
-	return func(dbConn mock.Connection) {
-		dbConn.SQLMock.ExpectQuery(regexp.QuoteMeta(findPatientByUUIDQuery)).WithArgs(sqlmock.AnyArg()).WillReturnRows(rows)
-	}
-}
-
-func withFindPatientByUUIDError() mock.DBResultOption {
-	return func(dbConn mock.Connection) {
-		dbConn.SQLMock.ExpectQuery(regexp.QuoteMeta(findPatientByUUIDQuery)).WithArgs(sqlmock.AnyArg()).WillReturnError(sql.ErrConnDone)
 	}
 }
 
@@ -466,7 +459,7 @@ func TestGetDoctorCalendar(t *testing.T) {
 
 			mock.MockDBResults(tt.args.dbConn, tt.args.dbMockOptions...)
 
-			req, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/bookings/calendar/%s/%s/%s/%s", tt.args.doctorUUID, tt.args.year, tt.args.month, tt.args.day), nil)
+			req, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/calendar/%s/%s/%s/%s", tt.args.doctorUUID, tt.args.year, tt.args.month, tt.args.day), nil)
 
 			token := ""
 			if tt.args.tokens != nil {
@@ -818,7 +811,7 @@ func TestGetAppointments(t *testing.T) {
 
 			mock.MockDBResults(tt.args.dbConn, tt.args.dbMockOptions...)
 
-			req, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/bookings/calendar/%s/%s/%s", tt.args.year, tt.args.month, tt.args.day), nil)
+			req, _ := http.NewRequest("GET", fmt.Sprintf("/api/v1/calendar/%s/%s/%s", tt.args.year, tt.args.month, tt.args.day), nil)
 
 			token := ""
 			if tt.args.tokens != nil {
@@ -1066,7 +1059,7 @@ func TestInsertBlockPeriod(t *testing.T) {
 			mock.MockDBResults(tt.args.dbConn, tt.args.dbMockOptions...)
 
 			body, _ := json.Marshal(tt.args.blockPeriod)
-			req, _ := http.NewRequest("POST", "/api/v1/bookings/calendar/blockers", bytes.NewBuffer(body))
+			req, _ := http.NewRequest("POST", "/api/v1/calendar/blockers", bytes.NewBuffer(body))
 
 			token := ""
 			if tt.args.tokens != nil {
@@ -1433,7 +1426,7 @@ func TestInsertAppointment(t *testing.T) {
 			mock.MockDBResults(tt.args.dbConn, tt.args.dbMockOptions...)
 
 			body, _ := json.Marshal(tt.args.appointmentRequest)
-			req, _ := http.NewRequest("POST", fmt.Sprintf("/api/v1/bookings/calendar/%s/%s/%s/%s", tt.args.doctorUUID, tt.args.year, tt.args.month, tt.args.day), bytes.NewBuffer(body))
+			req, _ := http.NewRequest("POST", fmt.Sprintf("/api/v1/calendar/%s/%s/%s/%s", tt.args.doctorUUID, tt.args.year, tt.args.month, tt.args.day), bytes.NewBuffer(body))
 
 			token := ""
 			if tt.args.tokens != nil {

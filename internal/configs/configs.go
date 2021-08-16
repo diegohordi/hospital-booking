@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 )
 
 type configData struct {
@@ -79,17 +80,27 @@ func (c *defaultConfig) loadPrivateKey(configPath string) error {
 // Load loads the given configuration file.
 func Load(configPath string) (Config, error) {
 	data := &configData{}
-	configFile, err := os.Open(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("an occurred while loading config file: %w", err)
+	serverPort := 8080
+	if port, err := strconv.Atoi(os.Getenv("SERVER_PORT")); err == nil {
+		serverPort = port
 	}
-	err = json.NewDecoder(configFile).Decode(data)
-	if err != nil {
-		return nil, fmt.Errorf("an occurred while parsing config file: %w", err)
+	data.DatabaseDSN = os.Getenv("DATABASE_DSN")
+	data.DatabaseDriver = os.Getenv("DATABASE_DRIVER")
+	data.ServerPort = int32(serverPort)
+	data.PrivateKeyFile = os.Getenv("PRIVATE_KEY_FILE")
+	if configPath != "" {
+		configFile, err := os.Open(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("an occurred while loading config file: %w", err)
+		}
+		err = json.NewDecoder(configFile).Decode(data)
+		if err != nil {
+			return nil, fmt.Errorf("an occurred while parsing config file: %w", err)
+		}
 	}
 	configuration := &defaultConfig{data: data}
 	if configuration.PrivateKeyFile() != "" {
-		if err = configuration.loadPrivateKey(configPath); err != nil {
+		if err := configuration.loadPrivateKey(configPath); err != nil {
 			return nil, err
 		}
 	}
@@ -104,4 +115,3 @@ func MustLoad(configPath string) Config {
 	}
 	return config
 }
-

@@ -1,0 +1,359 @@
+openapi: 3.0.1
+info:
+  title: Hospital Booking
+  description: 'This is a simple Hospital Booking API'
+  contact:
+    email: diego.hordi@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+  - url: http://localhost
+tags:
+  - name: monitoring
+  - name: auth
+  - name: calendar
+paths:
+  /health:
+    get:
+      tags:
+        - monitoring
+      summary: Checks if the service is working.
+      responses:
+        200:
+          description: Service is working.
+  /api/v1/auth/login:
+    post:
+      tags:
+        - auth
+      summary: Authenticate the given user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        200:
+          description: Successfull authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        401:
+          description: The given credentials are wrong
+          content: {}
+  /api/v1/auth/me:
+    get:
+      tags:
+        - auth
+      summary: Gets the authenticated user
+      security:
+        -  bearerAuth: []
+      responses:
+        200:
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticatedUser'
+        401:
+          description: The given token is invalid
+          content: {}
+  /api/v1/auth/token:
+    put:
+      tags:
+        - auth
+      summary: Refreshes the access token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokens'
+        required: true
+      responses:
+        200:
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        401:
+          description: The given token is invalid
+          content: {}
+  /api/v1/calendar/{year}/{month}/{day}:
+    get:
+      tags:
+        - calendar
+      summary: Gets appointments.
+      security:
+        -  bearerAuth: []
+      parameters:
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: day
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: Appointments list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalendarAppointment'
+        400:
+          description: If any URL parameters are not valid.
+          content: {}
+        403:
+          description: The given user is not a doctor.
+          content: {}
+        401:
+          description: The given token is not valid.
+          content: {}
+  /api/v1/calendar/blockers:
+    post:
+      tags:
+        - calendar
+      summary: Inserts a block period into calendar.
+      security:
+        -  bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockPeriod'
+      responses:
+        201:
+          description: Blocker created successfully.
+          content: {}
+        400:
+          description: Parameters are not valid.
+          content: {}
+        403:
+          description: The given user is not a doctor.
+          content: {}
+        401:
+          description: The given token is not valid.
+          content: {}
+  /api/v1/calendar/{doctorUUID}/{year}/{month}/{day}:
+    get:
+      tags:
+        - calendar
+      summary: Gets the doctor calendar.
+      security:
+        -  bearerAuth: []
+      parameters:
+        - name: doctorUUID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: day
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        200:
+          description: Doctor calendar.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Calendar'
+        400:
+          description: Any URL parameters are not valid.
+          content: {}
+        404:
+          description: No doctor has been found with the given UUID.
+          content: { }
+        401:
+          description: The given token is not valid.
+          content: {}
+    post:
+      tags:
+        - calendar
+      summary: Inserts an appointment in the doctor calendar.
+      security:
+        -  bearerAuth: []
+      parameters:
+        - name: doctorUUID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: month
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: day
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        201:
+          description: Appointment successfully created.
+          content: {}
+        400:
+          description: Any URL parameters are not valid or the chosen slot is no longer available.
+          content: {}
+        404:
+          description: No doctor has been found with the given UUID.
+          content: { }
+        403:
+          description: The given user is not a patient.
+          content: { }
+        401:
+          description: The given token is not valid.
+          content: {}
+components:
+  schemas:
+    User:
+        type: object
+        required:
+          - email
+          - password
+        properties:
+          email:
+            type: string
+            format: email
+            description: User email
+          password:
+            type: string
+            description: User password
+    AuthenticatedUser:
+        type: object
+        properties:
+          uuid:
+            type: string
+            format: UUID
+          email:
+            type: string
+            format: email
+          role:
+            type: string
+            enum:
+              - PATIENT
+              - DOCTOR
+    Tokens:
+        type: object
+        properties:
+          access_token:
+            type: string
+            format: jwt
+          refresh_token:
+            type: string
+            format: jwt
+    RefreshTokens:
+      type: object
+      properties:
+        access_token:
+          type: string
+          format: jwt
+        refresh_token:
+          type: string
+          format: jwt
+        grant_type:
+          type: string
+          enum:
+            - refresh_token
+    CalendarAppointment:
+      type: object
+      properties:
+        hour:
+          type: integer
+          format: int64
+        available:
+          type: boolean
+        patient:
+          $ref: '#/components/schemas/Patient'
+    Calendar:
+      type: object
+      properties:
+        hour:
+          type: integer
+          format: int64
+        available:
+          type: boolean
+    Patient:
+      type: object
+      properties:
+        name:
+          type: string
+    BlockPeriod:
+      type: object
+      required:
+        - start_date
+        - end_date
+      properties:
+        start_date:
+          type: string
+          format: datetime ISO 8601
+          example: '2021-09-13T12:42:31Z'
+          description: Blocker start date
+        end_date:
+          type: string
+          format: datetime ISO 8601
+          example: '2021-09-13T12:42:31Z'
+          description: Blocker end date
+        description:
+          type: string
+          description: Blocker description
+    Appointment:
+      type: object
+      required:
+        - hour
+      properties:
+        hour:
+          type: integer
+          format: int64
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

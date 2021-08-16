@@ -1,0 +1,150 @@
+version: '3.4'
+networks:
+  hospital_booking:
+volumes:
+  database:
+  prometheus_data:
+services:
+
+  # Tests
+  hospital_booking_backend_test:
+    container_name: hospital_booking_test
+    profiles:
+      - test
+    build:
+      context: .
+      dockerfile: './deployments/backend/Dockerfile'
+      target: test
+
+  # Backend services
+  hospital_booking_database:
+    container_name: hospital_booking_database
+    profiles:
+      - deploy
+    build: './deployments/database'
+    restart: always
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "admin" ]
+      timeout: 45s
+      interval: 10s
+      retries: 3
+    environment:
+      APP_PASSWORD: admin
+      APP_USER: hospital_booking
+      APP_DB: hospital_booking
+    ports:
+      - '5432:5432'
+    networks:
+      - hospital_booking
+
+  hospital_booking_backend:
+    container_name: hospital_booking_backend
+    profiles:
+      - deploy
+    build:
+      context: .
+      dockerfile: './deployments/backend/Dockerfile'
+      target: deploy
+      args:
+        PRIVATE_KEY_FILE_PATH: './configs/private.pem'
+        SERVER_PORT: '8081'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/health" ]
+      interval: 45s
+      timeout: 10s
+      retries: 3
+    restart: always
+    depends_on:
+      - hospital_booking_database
+    environment:
+      DATABASE_DSN: 'postgresql://admin:admin@hospital_booking_database:5432/hospital_booking?sslmode=disable'
+      DATABASE_DRIVER: 'postgres'
+      PRIVATE_KEY_FILE: 'private.pem'
+      SERVER_PORT: '8081'
+    ports:
+      - '8081'
+    networks:
+      - hospital_booking
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: "backend"
+
+  # Proxy
+  hospital_booking_proxy:
+    image: nginx:stable-alpine
+    container_name: hospital_booking_proxy
+    ports:
+      - '80:80'
+    volumes:
+      - ./deployments/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - hospital_booking_backend
+    networks:
+      - hospital_booking
+
+  # Metrics, Monitoring and logging
+  hospital_booking_prometheus:
+    image: prom/prometheus:v2.24.0
+    container_name: hospital_booking_prometheus
+    volumes:
+      - ./deployments/prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - '9090:9090'
+    restart: always
+    networks:
+      - hospital_booking
+
+  hospital_booking_elasticsearch:
+    container_name: hospital_booking_elasticsearch
+    hostname: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+    volumes:
+      - ./deployments/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    healthcheck:
+      test: [ "CMD", "curl", "-s", "-f", "http://localhost:9200/_cat/health" ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    ports:
+      - '9200:9200'
+    networks:
+      - hospital_booking
+
+  hospital_booking_logstash:
+    container_name: hospital_booking_logstash
+    image: docker.elastic.co/logstash/logstash:7.6.2
+    depends_on:
+      - hospital_booking_elasticsearch
+    volumes:
+      - ./deployments/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "12201:12201/udp"
+      - "5044:5044"
+    networks:
+      - hospital_booking
+
+  hospital_booking_kibana:
+    container_name: hospital_booking_kibana
+    image: docker.elastic.co/kibana/kibana:7.6.2
+    depends_on:
+      - hospital_booking_elasticsearch
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      XPACK_SECURITY_ENABLED: "false"
+    healthcheck:
+      test: [ "CMD", "curl", "-s", "-f", "http://localhost:5601/api/status" ]
+      interval: 3s
+      timeout: 3s
+      retries: 50
+    ports:
+      - '5601:5601'
+    networks:
+      - hospital_booking

@@ -33,16 +33,16 @@ func Setup(router *chi.Mux, logger *log.Logger, authorizer auth.Authorizer, conf
 	router.Group(func(group chi.Router) {
 		group.Use(auth.JwtValidator(authorizer))
 		group.Use(auth.AllowedRole(authorizer, auth.PatientRole))
-		group.Get("/api/v1/bookings/calendar/{doctorUUID}/{year}/{month}/{day}", handler.GetDoctorCalendar)
-		group.Post("/api/v1/bookings/calendar/{doctorUUID}/{year}/{month}/{day}", handler.InsertAppointment)
+		group.Get("/api/v1/calendar/{doctorUUID}/{year}/{month}/{day}", handler.GetDoctorCalendar)
+		group.Post("/api/v1/calendar/{doctorUUID}/{year}/{month}/{day}", handler.InsertAppointment)
 	})
 
 	// protected routes, only for doctors
 	router.Group(func(group chi.Router) {
 		group.Use(auth.JwtValidator(authorizer))
 		group.Use(auth.AllowedRole(authorizer, auth.DoctorRole))
-		group.Get("/api/v1/bookings/calendar/{year}/{month}/{day}", handler.GetAppointments)
-		group.Post("/api/v1/bookings/calendar/blockers", handler.InsertBlockPeriod)
+		group.Get("/api/v1/calendar/{year}/{month}/{day}", handler.GetAppointments)
+		group.Post("/api/v1/calendar/blockers", handler.InsertBlockPeriod)
 	})
 }
 
