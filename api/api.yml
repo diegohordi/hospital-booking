@@ -94,20 +94,20 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "2021"
         - name: month
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "08"
         - name: day
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "05"
       responses:
         200:
           description: Appointments list.
@@ -164,24 +164,25 @@ paths:
           required: true
           schema:
             type: string
+            example: "293691a7-9d90-47f9-a502-ff196f9d50e0"
         - name: year
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "2021"
         - name: month
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "08"
         - name: day
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "16"
       responses:
         200:
           description: Doctor calendar.
@@ -212,24 +213,25 @@ paths:
           required: true
           schema:
             type: string
+            example: "293691a7-9d90-47f9-a502-ff196f9d50e0"
         - name: year
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "2021"
         - name: month
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "08"
         - name: day
           in: path
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
+            example: "16"
       requestBody:
         content:
           application/json:
