@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -27,7 +26,13 @@ const (
 	plainTestPassword  = "test"
 )
 
-var logger = log.New(os.Stdout, "", log.LstdFlags)
+type emptyWriter struct{}
+
+func (e emptyWriter) Write(p []byte) (n int, err error) {
+	return 0, nil
+}
+
+var logger = log.New(&emptyWriter{}, "", log.LstdFlags)
 
 type mockAuthorizer struct {
 	mockValidateToken        func(ctx context.Context, token string) (*User, error)

@@ -8,5 +8,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/lestrrat-go/jwx v1.2.5
 	github.com/lib/pq v1.10.2
+	github.com/prometheus/client_golang v1.11.0
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 )
