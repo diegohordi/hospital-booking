@@ -42,7 +42,7 @@ func AllowedRole(service Authorizer, role Role) func(next http.Handler) http.Han
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			ctx := request.Context()
-			user, err := service.GetAuthenticatedUser(request.Context())
+			user, err := service.GetAuthenticatedUser(ctx)
 			if err != nil {
 				writer.WriteHeader(http.StatusUnauthorized)
 				return

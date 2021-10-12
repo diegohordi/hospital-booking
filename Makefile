@@ -22,10 +22,10 @@ keygen:
 	go run ./cmd/keygen/main.go -dir ${dir}
 
 run_test:
-	docker-compose up --build --abort-on-container-exit hospital_booking_backend_test
+	docker-compose -f ./deployments/docker-compose.yml up --build --abort-on-container-exit hospital_booking_backend_test
 
 run:
-	docker-compose --profile deploy up --build -d
+	docker-compose -f ./deployments/docker-compose.yml --profile deploy up --build -d
 
 stop:
-	docker-compose down -v
+	docker-compose -f ./deployments/docker-compose.yml down -v

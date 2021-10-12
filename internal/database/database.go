@@ -3,6 +3,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"hospital-booking/internal/configs"
@@ -20,12 +21,19 @@ type defaultConnection struct {
 // Connection holds a DB instance.
 type Connection interface {
 	DB() *sql.DB
+	CreateContext(ctx context.Context) (context.Context, context.CancelFunc)
 	Close()
 }
 
 // DB gets the DB instance associated to the connection.
 func (d *defaultConnection) DB() *sql.DB {
 	return d.db
+}
+
+// CreateContext creates a new context based on the given one, with a default timeout.
+func (d *defaultConnection) CreateContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	timeout := 5 * time.Second
+	return context.WithTimeout(ctx, timeout)
 }
 
 // NewConnection creates a new DB instance based on the given configurations.

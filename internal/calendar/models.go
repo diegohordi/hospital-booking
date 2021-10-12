@@ -61,13 +61,18 @@ type Appointment struct {
 }
 
 type AppointmentRequest struct {
-	Hour int32 `json:"hour"`
+	Hour       int32 `json:"hour"`
+	DoctorUUID uuid.UUID
+	Date       time.Time
 }
 
 // Validate checks if the given request is valid.
 func (a AppointmentRequest) Validate() error {
 	if !(a.Hour >= startWorkHour && a.Hour <= endWorkHour) {
 		return apierrors.NewValidationError("hour", "out of working hours")
+	}
+	if a.Date.IsZero() {
+		return apierrors.NewValidationError("date", "required")
 	}
 	return nil
 }

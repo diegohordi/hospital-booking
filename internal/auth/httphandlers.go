@@ -37,27 +37,30 @@ func Setup(router *chi.Mux, logger *log.Logger, config configs.Config, dbConn da
 	})
 }
 
+func (h httpHandler) writeResponseError(w http.ResponseWriter, r *http.Request, err error) {
+	logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
+	switch err.(type) {
+	case *UnauthorizedError:
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	case *apierrors.ValidationError:
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(err)
+		return
+	}
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
 // Authenticate handles the request to authenticate a user.
 func (h httpHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
-	credentials := new(Credentials)
+	credentials := &Credentials{}
 	if err := json.NewDecoder(r.Body).Decode(credentials); err != nil {
-		logging.PrintlnError(h.logger, err)
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	tokens, err := h.service.Authenticate(r.Context(), *credentials)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		switch err.(type) {
-		case *UnauthorizedError:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case *apierrors.ValidationError:
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(tokens)
@@ -65,24 +68,14 @@ func (h httpHandler) Authenticate(w http.ResponseWriter, r *http.Request) {
 
 // RefreshToken handles the request to return a new refresh token to the authenticated user.
 func (h httpHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	tokens := new(Tokens)
+	tokens := &Tokens{}
 	if err := json.NewDecoder(r.Body).Decode(tokens); err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	tokens, err := h.service.RefreshTokens(r.Context(), *tokens)
 	if err != nil {
-		switch err.(type) {
-		case *UnauthorizedError:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case *apierrors.ValidationError:
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(tokens)
@@ -92,8 +85,7 @@ func (h httpHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 func (h httpHandler) GetAuthenticatedUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.service.GetAuthenticatedUser(r.Context())
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusUnauthorized)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(user)
