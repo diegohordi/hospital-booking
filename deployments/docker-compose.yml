@@ -12,8 +12,8 @@ services:
     profiles:
       - test
     build:
-      context: .
-      dockerfile: './deployments/backend/Dockerfile'
+      context: ..
+      dockerfile: './build/backend/Dockerfile'
       target: test
 
   # Backend services
@@ -21,7 +21,7 @@ services:
     container_name: hospital_booking_database
     profiles:
       - deploy
-    build: './deployments/database'
+    build: '../build/database/'
     restart: always
     healthcheck:
       test: [ "CMD", "pg_isready", "-q", "-d", "postgres", "-U", "admin" ]
@@ -42,8 +42,8 @@ services:
     profiles:
       - deploy
     build:
-      context: .
-      dockerfile: './deployments/backend/Dockerfile'
+      context: ..
+      dockerfile: './build/backend/Dockerfile'
       target: deploy
       args:
         PRIVATE_KEY_FILE_PATH: './configs/private.pem'
@@ -78,7 +78,7 @@ services:
     ports:
       - '80:80'
     volumes:
-      - ./deployments/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./../build/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - hospital_booking_backend
     networks:
@@ -89,7 +89,7 @@ services:
     image: prom/prometheus:v2.24.0
     container_name: hospital_booking_prometheus
     volumes:
-      - ./deployments/prometheus/:/etc/prometheus/
+      - ./../build/prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -107,7 +107,7 @@ services:
     hostname: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
     volumes:
-      - ./deployments/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./../build/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
     healthcheck:
       test: [ "CMD", "curl", "-s", "-f", "http://localhost:9200/_cat/health" ]
       interval: 3s
@@ -124,7 +124,7 @@ services:
     depends_on:
       - hospital_booking_elasticsearch
     volumes:
-      - ./deployments/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./../build/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
     ports:
       - "12201:12201/udp"
       - "5044:5044"

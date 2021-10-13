@@ -2,7 +2,9 @@
 package mock
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )
@@ -11,6 +13,11 @@ import (
 type Connection struct {
 	db      *sql.DB
 	SQLMock sqlmock.Sqlmock
+}
+
+func (m Connection) CreateContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	timeout := 5 * time.Second
+	return context.WithTimeout(ctx, timeout)
 }
 
 func (m Connection) DB() *sql.DB {

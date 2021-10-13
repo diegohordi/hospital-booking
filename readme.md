@@ -116,3 +116,11 @@ Generates random UUID, used to seed the database. <br/>
 Generates private and public keys used to sign JWT tokens. <br/>
 `make keygen dir=configs`
 
+
+## Missing
+
+### Infra/Configuration
+* Dispose a Redocly/Swagger container to present the API spec
+* Run linters (golangci-lint) from Docker
+* Use github actions as CI
+* Use a migration tool (golang-migrate) to maintain the database updated

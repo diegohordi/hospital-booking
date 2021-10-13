@@ -47,6 +47,24 @@ func Setup(router *chi.Mux, logger *log.Logger, authorizer auth.Authorizer, conf
 	})
 }
 
+func (h httpHandler) writeResponseError(w http.ResponseWriter, r *http.Request, err error) {
+	logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
+	switch errType := err.(type) {
+	case *auth.UnauthorizedError:
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	case *apierrors.ValidationError:
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(err)
+		return
+	case *apierrors.APIError:
+		w.WriteHeader(errType.HTTPStatusCode())
+		_ = json.NewEncoder(w).Encode(err)
+		return
+	}
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
 // parseDate parses the given parameters into a valid time.
 func (h httpHandler) parseDateParameters(r *http.Request) (time.Time, error) {
 	var zeroTime time.Time
@@ -94,42 +112,21 @@ func (h httpHandler) GetDoctorCalendar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	date, err := h.parseDateParameters(r)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		if apiErr, isAPIErr := err.(*apierrors.APIError); isAPIErr {
-			w.WriteHeader(apiErr.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(apiErr)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	doctorUUID, err := h.parseUUIDParameter("doctorUUID", r)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		if apiErr, isAPIErr := err.(*apierrors.APIError); isAPIErr {
-			w.WriteHeader(apiErr.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(apiErr)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		h.writeResponseError(w, r, err)
 	}
 	user, err := h.authorizer.GetAuthenticatedUser(ctx)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusUnauthorized)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	entries, err := h.service.GetDoctorCalendar(ctx, user, doctorUUID, date)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		switch v := err.(type) {
-		case *apierrors.APIError:
-			w.WriteHeader(v.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(entries)
@@ -139,52 +136,29 @@ func (h httpHandler) InsertAppointment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	date, err := h.parseDateParameters(r)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		if apiErr, isAPIErr := err.(*apierrors.APIError); isAPIErr {
-			w.WriteHeader(apiErr.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(apiErr)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	doctorUUID, err := h.parseUUIDParameter("doctorUUID", r)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		if apiErr, isAPIErr := err.(*apierrors.APIError); isAPIErr {
-			w.WriteHeader(apiErr.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(apiErr)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	user, err := h.authorizer.GetAuthenticatedUser(ctx)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusUnauthorized)
+		h.writeResponseError(w, r, err)
 		return
 	}
-	appointmentRequest := new(AppointmentRequest)
+	appointmentRequest := &AppointmentRequest{}
 	if err = json.NewDecoder(r.Body).Decode(appointmentRequest); err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
-	err = h.service.InsertAppointment(ctx, user, doctorUUID, date, *appointmentRequest)
+	appointmentRequest.DoctorUUID = doctorUUID
+	appointmentRequest.Date = date
+	err = h.service.InsertAppointment(ctx, user, *appointmentRequest)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		switch v := err.(type) {
-		case *apierrors.APIError:
-			w.WriteHeader(v.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		case *apierrors.ValidationError:
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -194,31 +168,17 @@ func (h httpHandler) GetAppointments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	date, err := h.parseDateParameters(r)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		if apiErr, isAPIErr := err.(*apierrors.APIError); isAPIErr {
-			w.WriteHeader(apiErr.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(apiErr)
-			return
-		}
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	user, err := h.authorizer.GetAuthenticatedUser(ctx)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusUnauthorized)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	entries, err := h.service.GetAppointments(ctx, user, date)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		switch v := err.(type) {
-		case *apierrors.APIError:
-			w.WriteHeader(v.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(entries)
@@ -228,30 +188,17 @@ func (h httpHandler) InsertBlockPeriod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, err := h.authorizer.GetAuthenticatedUser(ctx)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusUnauthorized)
+		h.writeResponseError(w, r, err)
 		return
 	}
-	blockPeriod := new(BlockPeriod)
+	blockPeriod := &BlockPeriod{}
 	if err = json.NewDecoder(r.Body).Decode(blockPeriod); err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	err = h.service.InsertBlocker(ctx, user, *blockPeriod)
 	if err != nil {
-		logging.PrintlnError(h.logger, fmt.Sprint(r.Context().Value(middleware.RequestIDKey), " ", err))
-		switch v := err.(type) {
-		case *apierrors.APIError:
-			w.WriteHeader(v.HTTPStatusCode())
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		case *apierrors.ValidationError:
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(err)
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
+		h.writeResponseError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)

@@ -62,6 +62,8 @@ func newRepository(dbConn database.Connection) Repository {
 }
 
 func (d defaultRepository) FindDoctorByUserID(ctx context.Context, userID int64) (*Doctor, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = userID
 	rows, err := d.dbConn.DB().QueryContext(ctx, findDoctorByUserIDQuery, params...)
@@ -82,6 +84,8 @@ func (d defaultRepository) FindDoctorByUserID(ctx context.Context, userID int64)
 }
 
 func (d defaultRepository) FindPatientByUserID(ctx context.Context, userID int64) (*Patient, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = userID
 	rows, err := d.dbConn.DB().QueryContext(ctx, findPatientByUserIDQuery, params...)
@@ -102,6 +106,8 @@ func (d defaultRepository) FindPatientByUserID(ctx context.Context, userID int64
 }
 
 func (d defaultRepository) FindDoctorByUUID(ctx context.Context, uuid uuid.UUID) (*Doctor, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = uuid
 	rows, err := d.dbConn.DB().QueryContext(ctx, findDoctorByUUIDQuery, params...)
@@ -122,6 +128,8 @@ func (d defaultRepository) FindDoctorByUUID(ctx context.Context, uuid uuid.UUID)
 }
 
 func (d defaultRepository) FindPatientByID(ctx context.Context, ID int64) (*Patient, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = ID
 	rows, err := d.dbConn.DB().QueryContext(ctx, findPatientByIDQuery, params...)
@@ -142,6 +150,8 @@ func (d defaultRepository) FindPatientByID(ctx context.Context, ID int64) (*Pati
 }
 
 func (d defaultRepository) FindPatientByUUID(ctx context.Context, uuid uuid.UUID) (*Patient, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = uuid
 	rows, err := d.dbConn.DB().QueryContext(ctx, findPatientByUUIDQuery, params...)
@@ -162,6 +172,8 @@ func (d defaultRepository) FindPatientByUUID(ctx context.Context, uuid uuid.UUID
 }
 
 func (d defaultRepository) InsertBlocker(ctx context.Context, blockPeriod BlockPeriod) error {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 5)
 	params[0] = blockPeriod.UUID
 	params[1] = blockPeriod.Doctor.ID
@@ -183,6 +195,8 @@ func (d defaultRepository) InsertBlocker(ctx context.Context, blockPeriod BlockP
 }
 
 func (d defaultRepository) InsertAppointment(ctx context.Context, appointment Appointment) error {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 4)
 	params[0] = appointment.UUID
 	params[1] = appointment.Doctor.ID
@@ -203,6 +217,8 @@ func (d defaultRepository) InsertAppointment(ctx context.Context, appointment Ap
 }
 
 func (d defaultRepository) ListBlockers(ctx context.Context, doctorID int64, date time.Time) ([]*BlockPeriod, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 2)
 	params[0] = doctorID
 	params[1] = date.Truncate(24 * time.Hour)
@@ -223,6 +239,8 @@ func (d defaultRepository) ListBlockers(ctx context.Context, doctorID int64, dat
 }
 
 func (d defaultRepository) ListAppointments(ctx context.Context, doctorID int64, date time.Time) ([]*Appointment, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 2)
 	params[0] = doctorID
 	params[1] = date.Truncate(24 * time.Hour)

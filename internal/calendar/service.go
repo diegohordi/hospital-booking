@@ -1,3 +1,4 @@
+// Package calendar contains handlers, services and structures used to manage the hospital calendar.
 package calendar
 
 import (
@@ -32,7 +33,7 @@ type Reader interface {
 type Writer interface {
 
 	// InsertAppointment inserts an appointment to the doctor's calendar.
-	InsertAppointment(ctx context.Context, user auth.User, doctorUUID uuid.UUID, date time.Time, appointmentRequest AppointmentRequest) error
+	InsertAppointment(ctx context.Context, user auth.User, appointmentRequest AppointmentRequest) error
 }
 
 // Blocker determines the methods available to manage calendar's blockers.
@@ -92,8 +93,12 @@ func (d defaultService) GetDoctorCalendar(ctx context.Context, user auth.User, d
 	entries := make([]Entry, 0, endWorkHour-startWorkHour)
 	for hour := startWorkHour; hour <= endWorkHour; hour++ {
 		available := !d.hourIsBlocked(blockers, date, int(hour))
-		if available {
-			available = !d.hasAppointment(appointments, date, int(hour))
+		if !available {
+			continue
+		}
+		available = !d.hasAppointment(appointments, date, int(hour))
+		if !available {
+			continue
 		}
 		entry := Entry{
 			Hour:      hour,
@@ -201,7 +206,7 @@ func (d defaultService) slotIsAvailable(entries []Entry, hour int32) bool {
 	return false
 }
 
-func (d defaultService) InsertAppointment(ctx context.Context, user auth.User, doctorUUID uuid.UUID, date time.Time, appointmentRequest AppointmentRequest) error {
+func (d defaultService) InsertAppointment(ctx context.Context, user auth.User, appointmentRequest AppointmentRequest) error {
 	if err := appointmentRequest.Validate(); err != nil {
 		return err
 	}
@@ -212,14 +217,14 @@ func (d defaultService) InsertAppointment(ctx context.Context, user auth.User, d
 	if patient == nil {
 		return apierrors.NewAPIError(apierrors.WithDetail(ErrOnlyPatientCanCreateAppointment), apierrors.WithHTTPStatusCode(http.StatusForbidden))
 	}
-	doctor, err := d.repository.FindDoctorByUUID(ctx, doctorUUID)
+	doctor, err := d.repository.FindDoctorByUUID(ctx, appointmentRequest.DoctorUUID)
 	if err != nil {
 		return fmt.Errorf("an unexpected error occurred: %w", err)
 	}
 	if doctor == nil {
 		return apierrors.NewAPIError(apierrors.WithDetail(ErrDoctorNotFound), apierrors.WithHTTPStatusCode(http.StatusNotFound))
 	}
-	entries, err := d.GetDoctorCalendar(ctx, user, doctorUUID, date)
+	entries, err := d.GetDoctorCalendar(ctx, user, appointmentRequest.DoctorUUID, appointmentRequest.Date)
 	if err != nil {
 		return err
 	}
@@ -227,6 +232,7 @@ func (d defaultService) InsertAppointment(ctx context.Context, user auth.User, d
 	if !slotAvailable {
 		return apierrors.NewAPIError(apierrors.WithDetail(ErrSlotNotAvailable), apierrors.WithHTTPStatusCode(http.StatusBadRequest))
 	}
+	date := appointmentRequest.Date
 	appointment := Appointment{
 		UUID:    uuid.New(),
 		Doctor:  doctor,

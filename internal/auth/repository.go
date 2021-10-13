@@ -37,6 +37,8 @@ func newRepository(dbConn database.Connection) Repository {
 }
 
 func (d defaultRepository) FindUserByUUID(ctx context.Context, uuid uuid.UUID) (*User, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = uuid.String()
 	rows, err := d.dbConn.DB().QueryContext(ctx, findUserByUUIDQuery, params...)
@@ -57,6 +59,8 @@ func (d defaultRepository) FindUserByUUID(ctx context.Context, uuid uuid.UUID) (
 }
 
 func (d defaultRepository) FindUserByEmail(ctx context.Context, email string) (*User, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = email
 	rows, err := d.dbConn.DB().QueryContext(ctx, findUserByEmailQuery, params...)
@@ -64,7 +68,7 @@ func (d defaultRepository) FindUserByEmail(ctx context.Context, email string) (*
 		return nil, err
 	}
 	defer database.CloseRows(rows)
-	user := new(User)
+	user := &User{}
 	for rows.Next() {
 		if err = database.TransformRow(rows, user); err != nil {
 			return nil, err
@@ -77,6 +81,8 @@ func (d defaultRepository) FindUserByEmail(ctx context.Context, email string) (*
 }
 
 func (d defaultRepository) CheckUserPassword(ctx context.Context, email string, password string) (bool, error) {
+	ctx, cancel := d.dbConn.CreateContext(ctx)
+	defer cancel()
 	params := make([]interface{}, 1)
 	params[0] = email
 	row := d.dbConn.DB().QueryRowContext(ctx, checkUserPasswordQuery, params...)

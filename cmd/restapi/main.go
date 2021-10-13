@@ -8,7 +8,6 @@ import (
 	"hospital-booking/internal/calendar"
 	"hospital-booking/internal/configs"
 	"hospital-booking/internal/database"
-	"hospital-booking/internal/logging"
 	"hospital-booking/internal/metrics"
 	"log"
 	"net/http"
@@ -95,11 +94,11 @@ func main() {
 		}
 	}()
 
-	logging.PrintlnInfo(logger, fmt.Sprint("server started listing at ", config.ServerPort()))
+	log.Println(logger, fmt.Sprint("server started listing at ", config.ServerPort()))
 
 	// Listens until server stop
 	<-exit
-	logging.PrintlnWarn(logger, "server stopped")
+	log.Println(logger, "server stopped")
 
 	// Creates a timeout to handle resources release
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -112,5 +111,5 @@ func main() {
 		logger.Fatal(fmt.Errorf("an error occurred while server is shutting down: %w", err))
 	}
 
-	logging.PrintlnInfo(logger, "server shutdown successfully")
+	log.Println(logger, "server shutdown successfully")
 }
